@@ -1,0 +1,13 @@
+spring:
+  graphql:
+    graphiql:
+      enabled: true
+  application:
+    name: graphQLCassandraApi
+  data:
+    cassandra:
+      keyspace-name: cycling
+      contact-points: 127.0.0.1
+      port: 9042
+      local-datacenter: datacenter1
+      schema-action: NONE

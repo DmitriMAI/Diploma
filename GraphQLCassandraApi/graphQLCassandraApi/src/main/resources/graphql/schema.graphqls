@@ -1,0 +1,9 @@
+type Query {
+    getAllStudents: [Customer]
+    getStudentById(id: Int!): Customer
+}
+
+type Customer {
+    customerId: ID
+    customerName: String
+}
