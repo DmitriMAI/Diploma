@@ -1,0 +1,226 @@
+version: '3.8'
+
+services:
+
+  prometheus:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    command:
+      - '--config.file=/etc/prom/prom.yml'
+    volumes:
+      - ./prom:/etc/prom
+    networks:
+      - app_network
+  grafana:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: grafana/grafana:9.5.2
+    ports:
+      - 3000:3000
+    networks:
+      - app_network
+  cassandra:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: cassandra:latest
+    container_name: cassandra-container
+    ports:
+      - "9042:9042"
+    environment:
+      - CASSANDRA_USER=admin
+      - CASSANDRA_PASSWORD=admin
+    volumes:
+      - ./cassandra-data:/var/lib/cassandra
+      - ./init.cql:/docker-entrypoint-initdb.d/init.cql
+    networks:
+      - app_network
+  postgres:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: debezium/postgres:13
+    ports:
+      - 5432:5432
+      - 5431:5432
+    environment:
+      - POSTGRES_USER=docker
+      - POSTGRES_PASSWORD=docker
+      - POSTGRES_DB=exampledb
+    networks:
+      - app_network
+
+  debezium:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: debezium/connect:1.4
+    container_name: debezium
+    depends_on:
+      - kafka
+      - postgres
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: "1"
+      CONFIG_STORAGE_TOPIC: debezium_configs
+      OFFSET_STORAGE_TOPIC: debezium_offsets
+      STATUS_STORAGE_TOPIC: debezium_status
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8087
+      CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: http://schema-registry:8087
+    ports:
+      - "8083:8083"
+    networks:
+      - app_network
+
+  schema-registry:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: confluentinc/cp-schema-registry:5.5.3
+    environment:
+      - SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL=zookeeper:2181
+      - SCHEMA_REGISTRY_HOST_NAME=schema-registry
+      - SCHEMA_REGISTRY_LISTENERS=http://schema-registry:8087,http://localhost:8087
+    ports:
+      - 8087:8081
+    depends_on: [ zookeeper, kafka ]
+    networks:
+      - app_network
+
+  jobmanager:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: flink:1.17.1
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+      - |
+        FLINK_PROPERTIES=
+        metrics.reporters: prom
+        metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+    ports:
+      - "8081:8081"
+      - "9999:9999"
+      - "9249:9249"
+    volumes:
+      - ./jars:/opt/flink/usrlib
+      - ./flink-conf.yaml:/conf/flink-conf.yaml # Конфиг Flink
+    command: jobmanager
+
+    #entrypoint: ["/bin/bash -c", "cp /opt/flink/plugins/metrics-prometheus/flink-metrics-prometheus-1.17.1.jar /opt/flink/lib"]
+
+    networks:
+      - app_network
+
+  taskmanager:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: flink:1.17.1
+    environment:
+      - JOB_MANAGER_RPC_ADDRESS=jobmanager
+      - |
+        FLINK_PROPERTIES=
+        metrics.reporters: prom
+        metrics.reporter.prom.class: org.apache.flink.metrics.prometheus.PrometheusReporter
+        metrics.reporter.prom.port: 9250
+        metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+        metrics.reporter.prom.filter.includes: "*"
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    ports:
+      - "9250:9250"
+    volumes:
+      - ./flink-conf-2.yaml:/conf/flink-conf.yaml
+    networks:
+      - app_network
+  zookeeper:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: confluentinc/cp-zookeeper:7.4.4
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+    networks:
+      - app_network
+
+  kafka:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: confluentinc/cp-kafka:7.4.4
+
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CREATE_TOPICS: "car.create:1:1, car.update:1:1, postgres.public.cars:1:1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    networks:
+      - app_network
+  loki:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: grafana/loki:latest
+    command: -config.file=/etc/loki/local-config.yaml -config.expand-env=true
+    volumes:
+      - ./prom/local-config.yaml:/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    networks:
+      - app_network
+  promtail:
+    logging:
+      driver: json-file
+      options:
+        tag: "{{.Name}}/{{.ID}}"
+    image: grafana/promtail:latest
+    ports:
+      - "9080:9080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./prom/promtail-config.yaml:/etc/promtail/config.yaml
+      - /var/log:/var/log
+    command:
+      - -config.file=/etc/promtail/config.yaml
+    networks:
+      - app_network
+volumes:
+  cassandra-data:
+
+networks:
+  app_network:
+    driver: bridge
