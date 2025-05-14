@@ -1,0 +1,38 @@
+spring:
+  data:
+    cassandra:
+      keyspace-name: cycling
+      contact-points: 127.0.0.1
+      port: 9042
+      local-datacenter: datacenter1
+      schema-action: NONE
+
+  kafka:
+    consumer:
+      bootstrap-server: localhost:9092
+      group-id: myGroup
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+    producer:
+
+      bootstrap-servers: localhost:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+management:
+  endpoints:
+    web:
+      base-path: "/management"
+      exposure:
+        include:
+          - health
+          - prometheus
+#  metrics:
+#    export:
+#      prometheus:
+#        enabled: true
+#    distribution:
+#      percentiles-histogram:
+#        "[http.server.requests]": true
