@@ -1,0 +1,4 @@
+metrics.reporters: prom
+metrics.enabled: true
+metrics.reporter.prom.class: org.apache.flink.metrics.prometheus.PrometheusReporter
+metrics.reporter.prom.port: 9250

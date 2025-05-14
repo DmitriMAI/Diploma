@@ -1,0 +1,57 @@
+global:
+  scrape_interval:     1s
+  evaluation_interval: 1s
+  scrape_timeout: 500ms
+
+  external_labels:
+    monitor: 'codelab-monitor'
+
+scrape_configs:
+  - job_name: 'flink-start-3'
+    static_configs:
+      - targets: [ 'jobmanager:9249' ]
+  - job_name: 'flink-start'
+    metrics_path: "/jobmanager/metrics"
+    static_configs:
+      - targets: [ 'jobmanager:9249' ]
+
+  - job_name: 'flink-start-2'
+    metrics_path: "/jobmanager/metrics"
+    static_configs:
+      - targets: [ 'localhost:9249' ]
+  - job_name: 'flink-start-23'
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: [ 'localhost:9249' ]
+  - job_name: 'task-13'
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: [ 'taskmanager-1:9250' ]
+  - job_name: 'task-23'
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: [ 'taskmanager:9250' ]
+    scrape_interval: 1s
+
+  - job_name: 'flink-taskmanagers'
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 'taskmanager-1:9250'  # Имя контейнера TaskManager 1
+          - 'taskmanager-2:9250'  # Имя контейнера TaskManager 2
+    relabel_configs:
+      - source_labels: [ __address__ ]
+        target_label: instance
+        regex: '([^:]+):\d+'
+        replacement: '$1'
+  - job_name: 'prometheus'
+
+    scrape_interval: 5s
+
+    static_configs:
+      - targets: ['localhost:9090']
+  - job_name: ss2c
+    scrape_interval: 5s
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["172.18.0.1:8080"]
