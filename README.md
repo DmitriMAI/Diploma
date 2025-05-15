@@ -15,4 +15,4 @@
 ![5.png](images%2F5.png)
 
 Видео работы  
-[2025-02-03 09-17-41.mp4](images%2F2025-02-03%2009-17-41.mp4)
+https://github.com/user-attachments/assets/574fe28c-c93a-4add-a1c8-ef0805701fd0
