@@ -1,8 +1,8 @@
-package com.knoldus;
+package com.mai;
 
-import com.knoldus.services.CassandraService;
-import com.knoldus.services.KafkaService;
-import com.knoldus.services.MyMapper;
+import com.mai.services.CassandraService;
+import com.mai.services.KafkaService;
+import com.mai.services.MyMapper;
 import model.Car;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.JsonNode;
 import org.apache.flink.shaded.jackson2.com.fasterxml.jackson.databind.ObjectMapper;

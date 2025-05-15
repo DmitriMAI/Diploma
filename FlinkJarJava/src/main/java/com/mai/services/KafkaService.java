@@ -1,6 +1,6 @@
-package com.knoldus.services;
+package com.mai.services;
 
-import com.knoldus.FlinkStreamingWithKafkaAndCassandra;
+import com.mai.FlinkStreamingWithKafkaAndCassandra;
 import model.Car;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;

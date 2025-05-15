@@ -1,7 +1,7 @@
-package com.knoldus.services;
+package com.mai.services;
 
 import com.datastax.driver.mapping.Mapper;
-import com.knoldus.FlinkStreamingWithKafkaAndCassandra;
+import com.mai.FlinkStreamingWithKafkaAndCassandra;
 import model.Car;
 import model.CarTable;
 import org.apache.flink.api.common.functions.FlatMapFunction;
